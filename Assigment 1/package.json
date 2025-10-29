@@ -1,0 +1,15 @@
+{
+  "name": "realistic-campus",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite"
+  },
+  "dependencies": {
+    "three": "^0.180.0",
+    "lil-gui": "^0.21.0"
+  },
+  "devDependencies": {
+    "vite": "^4.4.9"
+  }
+}
