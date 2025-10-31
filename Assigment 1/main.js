@@ -1,192 +1,217 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
-// === 1) Scene, Camera, Renderer ===
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xbfd6ea);
+// ================== SCENE ==================
+const scene = new THREE.Scene()
+scene.background = new THREE.Color(0x8cc6ff) // qiell i kaltër
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 400);
-camera.position.set(30, 18, 30);
+// ================== CAMERA ==================
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+)
+camera.position.set(25, 15, 45) // pak më larg që të shihet e gjitha
+scene.add(camera)
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-document.body.appendChild(renderer.domElement);
+// ================== RENDERER ==================
+const renderer = new THREE.WebGLRenderer({ antialias: true })
+renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
+document.getElementById('app').appendChild(renderer.domElement)
 
-// === 2) Controls ===
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 2.5, 0);
-controls.update();
+// ================== LIGHTS ==================
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7)
+scene.add(ambientLight)
 
-// === 3) Helper Grid (optional) ===
-const grid = new THREE.GridHelper(120, 60);
-grid.material.opacity = 0.08;
-grid.material.transparent = true;
-scene.add(grid);
+const sunLight = new THREE.DirectionalLight(0xffffff, 1.2)
+sunLight.position.set(40, 40, 20)
+sunLight.castShadow = true
+scene.add(sunLight)
 
-// === 4) Textures ===
-function makeGrassTexture(size = 512){
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#2f8b3a';
-    ctx.fillRect(0,0,size,size);
-    for(let i=0;i<3000;i++){
-        const x = Math.random()*size;
-        const y = Math.random()*size;
-        ctx.fillStyle = `rgba(47,139,58,${Math.random()*0.5})`;
-        ctx.fillRect(x,y,1,1);
+// ================== GROUND ==================
+const grassGeo = new THREE.PlaneGeometry(200, 200)
+const grassMat = new THREE.MeshLambertMaterial({ color: 0x5f9341 })
+const grass = new THREE.Mesh(grassGeo, grassMat)
+grass.rotation.x = -Math.PI / 2
+grass.receiveShadow = true
+scene.add(grass)
+
+// ================== ROAD + ROUNDABOUT ==================
+// asfalt
+const roadGeo = new THREE.PlaneGeometry(110, 45)
+const roadMat = new THREE.MeshStandardMaterial({ color: 0x5a5a5a })
+const road = new THREE.Mesh(roadGeo, roadMat)
+road.rotation.x = -Math.PI / 2
+road.position.set(0, 0.02, 10)
+road.receiveShadow = true
+scene.add(road)
+
+// rrethrrotullimi
+const ringGeo = new THREE.RingGeometry(6, 11, 60)
+const ringMat = new THREE.MeshStandardMaterial({ color: 0x6c6c6c, side: THREE.DoubleSide })
+const roundabout = new THREE.Mesh(ringGeo, ringMat)
+roundabout.rotation.x = -Math.PI / 2
+roundabout.position.set(0, 0.03, 0)
+roundabout.receiveShadow = true
+scene.add(roundabout)
+
+// shtrati me gurë të bardhë
+const stonesGeo = new THREE.RingGeometry(5.7, 6, 50)
+const stonesMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, side: THREE.DoubleSide })
+const stones = new THREE.Mesh(stonesGeo, stonesMat)
+stones.rotation.x = -Math.PI / 2
+stones.position.set(0, 0.031, 0)
+scene.add(stones)
+
+// shkurret në mes (si në foto)
+function createBush(x, z, s = 1) {
+  const bushGeo = new THREE.SphereGeometry(1.6 * s, 16, 16)
+  const bushMat = new THREE.MeshLambertMaterial({ color: 0x0f4a28 })
+  const bush = new THREE.Mesh(bushGeo, bushMat)
+  bush.position.set(x, 1 * s, z)
+  bush.castShadow = true
+  return bush
+}
+const bushGroup = new THREE.Group()
+bushGroup.add(createBush(0, 0, 1))
+bushGroup.add(createBush(2, 0.2, 0.8))
+bushGroup.add(createBush(-2, 0.2, 0.8))
+bushGroup.add(createBush(1, -1, 0.7))
+bushGroup.add(createBush(-1, -1, 0.7))
+bushGroup.position.set(0, 0.04, 0)
+scene.add(bushGroup)
+
+// ================== BUILDINGS ==================
+// 1) Ndërtesa e MAJTË (e bardhë, me dritare horizontale)
+const leftBuildGeo = new THREE.BoxGeometry(26, 10, 12)
+const leftBuildMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f2 })
+const leftBuilding = new THREE.Mesh(leftBuildGeo, leftBuildMat)
+leftBuilding.position.set(-25, 5, -18)
+leftBuilding.castShadow = true
+leftBuilding.receiveShadow = true
+scene.add(leftBuilding)
+
+// dritaret e ndërtesës së majtë (2 kate)
+function addHorizontalWindowsOnBox(box, rows = 2, cols = 6, color = 0x9ed1ff) {
+  const { width, height, depth } = box.geometry.parameters
+  const frontZ = box.position.z + depth / 2 + 0.05
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      const wGeo = new THREE.BoxGeometry(2.5, 1, 0.1)
+      const wMat = new THREE.MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: 0.2,
+        transparent: true,
+        opacity: 0.9,
+      })
+      const w = new THREE.Mesh(wGeo, wMat)
+      const startX = box.position.x - width / 2 + 3
+      w.position.set(startX + j * 3.7, box.position.y - 1 + i * 2.4, frontZ)
+      scene.add(w)
     }
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(8,8);
-    return tex;
+  }
+}
+addHorizontalWindowsOnBox(leftBuilding, 2, 5)
+
+// 2) HYRJA (pjesa qendrore me xhama jeshil)
+const entranceDepth = 6
+const entranceWidth = 28
+const entranceHeight = 8
+
+// pjesa e sipërme e hyrjes (korniza)
+const entranceTopGeo = new THREE.BoxGeometry(entranceWidth, 2, entranceDepth)
+const entranceTopMat = new THREE.MeshStandardMaterial({ color: 0xf5f1e7 })
+const entranceTop = new THREE.Mesh(entranceTopGeo, entranceTopMat)
+entranceTop.position.set(0, 8, -14)
+entranceTop.castShadow = true
+scene.add(entranceTop)
+
+// fasada e xhamit (jeshil)
+const glassGeo = new THREE.BoxGeometry(entranceWidth - 1, 3, 0.2)
+const glassMat = new THREE.MeshPhongMaterial({
+  color: 0x3a5f57, // jeshil i errët si në foto
+  transparent: true,
+  opacity: 0.8,
+  shininess: 120,
+})
+const glass = new THREE.Mesh(glassGeo, glassMat)
+glass.position.set(0, 6.5, -11.9)
+scene.add(glass)
+
+// kolonat poshtë hyrjes
+const colGeo = new THREE.BoxGeometry(0.6, 3.5, 0.6)
+const colMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8 })
+const columns = []
+for (let i = -10; i <= 10; i += 4) {
+  const col = new THREE.Mesh(colGeo, colMat)
+  col.position.set(i, 2.1, -11.8)
+  col.castShadow = true
+  scene.add(col)
+  columns.push(col)
 }
 
-function makePavementTexture(size=512){
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#6d6d6d';
-    ctx.fillRect(0,0,size,size);
-    for(let i=0;i<200;i++){
-        const x=Math.random()*size;
-        const y=Math.random()*size;
-        const w=1+Math.random()*3;
-        ctx.fillStyle='#5b5b5b';
-        ctx.fillRect(x,y,w,w);
-    }
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(8,4);
-    tex.anisotropy=4;
-    return tex;
+// dera / hyrja e xhamit poshtë
+const doorGeo = new THREE.BoxGeometry(entranceWidth - 1, 2.5, 0.2)
+const doorMat = new THREE.MeshPhongMaterial({
+  color: 0xdfe8ea,
+  transparent: true,
+  opacity: 0.95,
+})
+const doors = new THREE.Mesh(doorGeo, doorMat)
+doors.position.set(0, 1.2, -11.9)
+scene.add(doors)
+
+// 3) Ndërtesa e DJATHTË (blu, si hangar)
+const rightBuildGeo = new THREE.BoxGeometry(30, 9, 16)
+const rightBuildMat = new THREE.MeshStandardMaterial({ color: 0x276da9 })
+const rightBuilding = new THREE.Mesh(rightBuildGeo, rightBuildMat)
+rightBuilding.position.set(28, 4.5, -14)
+rightBuilding.castShadow = true
+rightBuilding.receiveShadow = true
+scene.add(rightBuilding)
+
+// pemët konike në të majtë dhe në të djathtë (si në foto)
+function createConicTree(x, z, h = 5, r = 2, color = 0x1a4a26) {
+  const geo = new THREE.ConeGeometry(r, h, 12)
+  const mat = new THREE.MeshLambertMaterial({ color })
+  const tree = new THREE.Mesh(geo, mat)
+  tree.position.set(x, h / 2, z)
+  tree.castShadow = true
+  scene.add(tree)
 }
 
-// === 5) Ground ===
-const grassMat = new THREE.MeshStandardMaterial({ map: makeGrassTexture(), roughness: 0.95 });
-const grass = new THREE.Mesh(new THREE.PlaneGeometry(120,80), grassMat);
-grass.rotation.x = -Math.PI/2;
-grass.receiveShadow = true;
-scene.add(grass);
+// majtas (te parkingu në foto)
+createConicTree(-40, -5, 5, 2.2, 0x1a4a26)
+createConicTree(-35, -8, 4.2, 2, 0x2a6a36)
+createConicTree(-30, -3, 4.5, 2, 0x1a4a26)
 
-// Path
-const pathMat = new THREE.MeshStandardMaterial({ map: makePavementTexture(), roughness: 0.8 });
-const path = new THREE.Mesh(new THREE.PlaneGeometry(28,8), pathMat);
-path.rotation.x = -Math.PI/2;
-path.position.set(0,0.02,-4);
-path.receiveShadow = true;
-scene.add(path);
+// djathtas
+createConicTree(45, -4, 5, 2.2, 0x1a4a26)
+createConicTree(40, -8, 4.3, 2, 0x1a4a26)
+createConicTree(50, -6, 4.5, 2, 0x1a4a26)
 
-// === 6) Buildings ===
-function addWindows(building, rows, cols, w, h, offset){
-    const geo = new THREE.PlaneGeometry(w,h);
-    for(let r=0;r<rows;r++){
-        for(let c=0;c<cols;c++){
-            const mat = new THREE.MeshStandardMaterial({
-                color:0x111122,
-                emissive: new THREE.Color(0x334455).multiplyScalar(Math.random()*0.6),
-                roughness:1,
-                side:THREE.DoubleSide
-            });
-            const win = new THREE.Mesh(geo, mat);
-            const bx = building.geometry.parameters.width;
-            const bz = building.geometry.parameters.depth;
-            const by = building.geometry.parameters.height;
-            const x = -(cols-1)*(w+0.2)/2 + c*(w+0.2);
-            const y = -by/2 + 1.5 + r*(h+0.6);
-            win.position.set(building.position.x + x, building.position.y + y, building.position.z + bz/2 + offset);
-            scene.add(win);
-        }
-    }
+// ================== CONTROLS ==================
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.target.set(0, 4, -14)
+controls.enableDamping = true
+controls.maxPolarAngle = Math.PI / 2.1
+
+// ================== RESIZE ==================
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight
+  camera.updateProjectionMatrix()
+  renderer.setSize(window.innerWidth, window.innerHeight)
+})
+
+// ================== ANIMATE ==================
+function animate() {
+  requestAnimationFrame(animate)
+  controls.update()
+  renderer.render(scene, camera)
 }
+animate()
 
-// Building A
-const buildingA = new THREE.Mesh(new THREE.BoxGeometry(12,7,8),
-    new THREE.MeshStandardMaterial({ color:0xf2efe9, roughness:0.6, metalness:0.05 }));
-buildingA.position.set(-12,3.5,-2);
-buildingA.castShadow = true;
-buildingA.receiveShadow = true;
-scene.add(buildingA);
-addWindows(buildingA,2,4,1.4,1,0.51);
-
-// Building B
-const buildingB = new THREE.Mesh(new THREE.BoxGeometry(8,10,6),
-    new THREE.MeshPhongMaterial({ color:0xfff1d6, shininess:50 }));
-buildingB.position.set(6,5,2);
-buildingB.castShadow=true;
-buildingB.receiveShadow=true;
-scene.add(buildingB);
-addWindows(buildingB,3,2,0.8,0.9,0.51);
-
-// Building C
-const buildingC = new THREE.Mesh(new THREE.BoxGeometry(6,4.5,8),
-    new THREE.MeshLambertMaterial({ color:0x8fb3ff }));
-buildingC.position.set(12,2.25,-10);
-buildingC.castShadow=true;
-buildingC.receiveShadow=true;
-scene.add(buildingC);
-addWindows(buildingC,1,3,0.9,0.9,0.51);
-
-// === 7) Trees ===
-function makeTree(x,z,scale=1){
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25*scale,0.25*scale,2*scale,8),
-        new THREE.MeshStandardMaterial({ color:0x6b4a2b }));
-    trunk.position.set(x,1*scale,z);
-    trunk.castShadow=true;
-    trunk.receiveShadow=true;
-    scene.add(trunk);
-
-    const foliage = new THREE.Mesh(new THREE.SphereGeometry(1.2*scale,16,12),
-        new THREE.MeshStandardMaterial({ color:0x1f7a2b, roughness:0.9 }));
-    foliage.position.set(x,2.2*scale,z);
-    foliage.castShadow=true;
-    scene.add(foliage);
-}
-
-makeTree(-6,-6,1.0);
-makeTree(-2,-9,0.9);
-makeTree(6,-6,1.1);
-makeTree(10,-3,0.9);
-
-// === 8) Lights ===
-const ambient = new THREE.AmbientLight(0xffffff,0.45);
-scene.add(ambient);
-
-const dir = new THREE.DirectionalLight(0xffffff,0.9);
-dir.position.set(30,40,20);
-dir.castShadow=true;
-dir.shadow.mapSize.width=2048;
-dir.shadow.mapSize.height=2048;
-scene.add(dir);
-
-const lamp = new THREE.PointLight(0xfff1c7,0.7,30);
-lamp.position.set(0,5.2,-6);
-lamp.castShadow=true;
-scene.add(lamp);
-
-const lampBulb = new THREE.Mesh(
-    new THREE.SphereGeometry(0.12,8,8),
-    new THREE.MeshStandardMaterial({ emissive:0xfff1c7, emissiveIntensity:0.9, color:0x333333 })
-);
-lampBulb.position.copy(lamp.position);
-scene.add(lampBulb);
-
-// === 9) Animate ===
-const clock = new THREE.Clock();
-
-function animate(){
-    requestAnimationFrame(animate);
-    const t = clock.getElapsedTime();
-    lamp.intensity = 0.6 + Math.sin(t*1.5)*0.05;
-    renderer.render(scene,camera);
-}
-animate();
-
-// === 10) Resize ===
-window.addEventListener('resize',()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
