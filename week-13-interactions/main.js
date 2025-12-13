@@ -4,7 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 const app = document.getElementById("app");
 const infoEl = document.getElementById("info");
 
-// --- Scene / Camera / Renderer ---
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0f1115);
 
@@ -21,22 +21,22 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 app.appendChild(renderer.domElement);
 
-// --- Controls ---
+
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// --- Lights ---
+
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
 dirLight.position.set(10, 12, 6);
 scene.add(dirLight);
 
-// --- Helpers (optional) ---
+
 const grid = new THREE.GridHelper(30, 30, 0x3a3f4b, 0x2b2f3a);
 grid.position.y = -4;
 scene.add(grid);
 
-// --- Cubes ---
+
 const cubes = [];
 const cubeCount = 25; // >= 20 cubes
 
@@ -45,30 +45,30 @@ function rand(min, max) {
 }
 
 for (let i = 0; i < cubeCount; i++) {
-  // Random size
+  
   const w = rand(0.5, 2.2);
   const h = rand(0.5, 2.2);
   const d = rand(0.5, 2.2);
 
   const geometry = new THREE.BoxGeometry(w, h, d);
 
-  // Random color
+  
   const color = new THREE.Color(Math.random(), Math.random(), Math.random());
   const material = new THREE.MeshStandardMaterial({ color });
 
   const cube = new THREE.Mesh(geometry, material);
 
-  // Random position
+  
   cube.position.set(rand(-8, 8), rand(-2, 6), rand(-8, 8));
 
-  // Store size for UI
+  
   cube.userData.size = { width: w, height: h, depth: d };
 
   scene.add(cube);
   cubes.push(cube);
 }
 
-// --- Raycasting ---
+
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -121,13 +121,13 @@ function selectCube(cube) {
   selectedCube = cube;
   selectedPrevColor = cube.material.color.clone();
 
-  // Highlight
+  
   cube.material.color.set(0xffff66);
 
-  // Update UI
+  
   updatePanel(cube);
 
-  // Reset animation timer
+  
   pulseT = 0;
 }
 
@@ -153,13 +153,13 @@ window.addEventListener("click", (e) => {
   }
 });
 
-// --- Render loop ---
+
 function animate() {
   requestAnimationFrame(animate);
 
   controls.update();
 
-  // Pulse animation when selected
+  
   if (selectedCube) {
     pulseT += 0.08;
     const s = 1 + Math.sin(pulseT) * 0.06;
@@ -170,7 +170,7 @@ function animate() {
 }
 animate();
 
-// --- Resize ---
+
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
